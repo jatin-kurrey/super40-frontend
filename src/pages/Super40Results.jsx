@@ -28,8 +28,7 @@ const Super40Results = () => {
       const trimmedEmail = email.toLowerCase().trim();
       const trimmedPhone = phone.trim();
       const res = await examService.getResults(trimmedEmail, trimmedPhone);
-      // Robust data extraction
-      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      return res.data;
     },
     onSuccess: (data) => {
       console.log("Results fetched successfully:", data);
@@ -155,7 +154,7 @@ const Super40Results = () => {
                   transition={{ duration: 0.4, delay: 0.1 }}
                   className="text-5xl font-black text-slate-900 tracking-tighter"
                 >
-                  Welcome, <span className="text-blue-900">{results[0]?.name || "Student"}</span>
+                  Welcome, <span className="text-blue-900">{results.application?.name || "Student"}</span>
                 </motion.h1>
               </div>
               <motion.button 
@@ -188,12 +187,26 @@ const Super40Results = () => {
                   <h3 className="text-2xl font-black text-slate-900 mb-6">Profile Details</h3>
                   <div className="space-y-4">
                     <div className="p-4 bg-slate-50 rounded-2xl">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Name</p>
+                      <p className="font-bold text-slate-900">{results.application?.name}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-2xl">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email</p>
-                      <p className="font-bold text-slate-900">{credentials.email}</p>
+                      <p className="font-bold text-slate-900">{results.application?.email}</p>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-2xl">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</p>
-                      <p className="font-bold text-slate-900">{credentials.phone}</p>
+                      <p className="font-bold text-slate-900">{results.application?.phone}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-2xl">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Application Status</p>
+                      <span className={`inline-block px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest mt-2 ${
+                        results.application?.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                        results.application?.status === 'rejected' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                        'bg-amber-50 text-amber-600 border border-amber-100'
+                      }`}>
+                        {results.application?.status || 'pending'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -206,12 +219,12 @@ const Super40Results = () => {
                   Exam Performances
                 </h2>
 
-                {results.length === 0 ? (
+                {!results.responses || results.responses.length === 0 ? (
                   <div className="bg-white p-16 rounded-[3rem] border-2 border-dashed border-slate-200 text-center">
                     <p className="text-slate-400 font-bold">No exam responses found for this account.</p>
                   </div>
                 ) : (
-                  results.map((result, idx) => (
+                  results.responses.map((result, idx) => (
                     <motion.div 
                       key={idx}
                       initial={{ opacity: 0, y: 20 }}
