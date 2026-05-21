@@ -24,21 +24,26 @@ const Super40RegisterForm = ({ onSubmit }) => {
     setIsSubmitting(true);
     
     try {
+      const emailNormalized = formData.email.toLowerCase().trim();
+      const phoneNormalized = formData.phone.trim();
+      const nameNormalized = formData.name.trim();
+
       const payload = {
         form_type: "super_40",
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
+        name: nameNormalized,
+        email: emailNormalized,
+        phone: phoneNormalized,
         data: {
-          school: formData.school,
+          school: formData.school.trim(),
           grade: formData.grade
         }
       };
       
       await applicationService.submit(payload);
       
-      localStorage.setItem('super40_student_email', formData.email);
-      localStorage.setItem('super40_student_name', formData.name);
+      localStorage.setItem('super40_student_email', emailNormalized);
+      localStorage.setItem('super40_student_phone', phoneNormalized);
+      localStorage.setItem('super40_student_name', nameNormalized);
       
       setSubmitted(true);
       

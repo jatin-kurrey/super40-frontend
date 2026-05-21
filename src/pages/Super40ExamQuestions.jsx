@@ -70,10 +70,12 @@ const Super40ExamQuestions = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     
+    const email = (localStorage.getItem('super40_student_email') || 'anonymous').toLowerCase().trim();
+    
     try {
       const payload = {
         exam_id: exam.id,
-        student_id: localStorage.getItem('super40_student_email') || 'anonymous',
+        student_id: email,
         name: localStorage.getItem('super40_student_name') || 'Student',
         responses: answers,
         submitted: true
@@ -83,6 +85,10 @@ const Super40ExamQuestions = () => {
       navigate('/super40/results');
     } catch (err) {
       console.error("Auto Submit Error:", err);
+      alert("Time's up! Your exam auto-submission had an issue, but we are navigating you to results. Please verify your exam completion.");
+      navigate('/super40/results');
+    } finally {
+      setIsSubmitting(false);
     }
   }, [answers, exam, isSubmitting, navigate]);
 
@@ -97,11 +103,12 @@ const Super40ExamQuestions = () => {
     if (!window.confirm("Are you sure you want to submit your exam?")) return;
     
     setIsSubmitting(true);
+    const email = (localStorage.getItem('super40_student_email') || 'anonymous').toLowerCase().trim();
     
     try {
       const payload = {
         exam_id: exam.id,
-        student_id: localStorage.getItem('super40_student_email') || 'anonymous',
+        student_id: email,
         name: localStorage.getItem('super40_student_name') || 'Student',
         responses: answers,
         submitted: true

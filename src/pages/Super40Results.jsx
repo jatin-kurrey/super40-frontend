@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { 
@@ -22,10 +22,12 @@ const Super40Results = () => {
     phone: ''
   });
   const [results, setResults] = useState(null);
-  const { mutate: handleLookup, isLoading: loading, error: mutationError } = useMutation({
-    mutationFn: async (e) => {
-      e.preventDefault();
-      const res = await examService.getResults(credentials.email, credentials.phone);
+
+  const { mutate: triggerLookup, isLoading: loading, error: mutationError } = useMutation({
+    mutationFn: async ({ email, phone }) => {
+      const trimmedEmail = email.toLowerCase().trim();
+      const trimmedPhone = phone.trim();
+      const res = await examService.getResults(trimmedEmail, trimmedPhone);
       // Robust data extraction
       return Array.isArray(res.data) ? res.data : (res.data?.data || []);
     },
@@ -35,21 +37,24 @@ const Super40Results = () => {
     }
   });
 
-  const error = mutationError?.response?.data?.error || mutationError?.message;
+  const handleLookup = (e) => {
+    if (e) e.preventDefault();
+    triggerLookup({ email: credentials.email, phone: credentials.phone });
+  };
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.6, staggerChildren: 0.1 }
+  // Auto-fill and auto-submit if credentials exist in localStorage
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('super40_student_email');
+    const savedPhone = localStorage.getItem('super40_student_phone');
+    if (savedEmail && savedPhone) {
+      const emailVal = savedEmail.toLowerCase().trim();
+      const phoneVal = savedPhone.trim();
+      setCredentials({ email: emailVal, phone: phoneVal });
+      triggerLookup({ email: emailVal, phone: phoneVal });
     }
-  };
+  }, [triggerLookup]);
 
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 }
-  };
+  const error = mutationError?.response?.data?.error || mutationError?.message;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pt-32 pb-20 px-6">
@@ -61,6 +66,7 @@ const Super40Results = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
             className="max-w-xl mx-auto"
           >
             <div className="text-center mb-12">
@@ -127,34 +133,53 @@ const Super40Results = () => {
           </motion.div>
         ) : (
           <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
           >
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
               <div>
-                <motion.div variants={itemVariants} className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full mb-6">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full mb-6"
+                >
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Authenticated Access</span>
                 </motion.div>
-                <motion.h1 variants={itemVariants} className="text-5xl font-black text-slate-900 tracking-tighter">
+                <motion.h1 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="text-5xl font-black text-slate-900 tracking-tighter"
+                >
                   Welcome, <span className="text-blue-900">{results[0]?.name || "Student"}</span>
                 </motion.h1>
               </div>
               <motion.button 
-                variants={itemVariants}
-                onClick={() => setResults(null)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                onClick={() => {
+                  setResults(null);
+                }}
                 className="text-slate-400 hover:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2"
               >
-                Logout Access <TrendingUp className="w-4 h-4" />
+                Change Credentials <TrendingUp className="w-4 h-4" />
               </motion.button>
             </div>
 
             {/* Results Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               {/* Profile Card */}
-              <motion.div variants={itemVariants} className="lg:col-span-1">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="lg:col-span-1"
+              >
                 <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl"></div>
                   <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 border border-slate-100">
@@ -189,7 +214,9 @@ const Super40Results = () => {
                   results.map((result, idx) => (
                     <motion.div 
                       key={idx}
-                      variants={itemVariants}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.2 + idx * 0.1 }}
                       className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 group"
                     >
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
