@@ -139,15 +139,35 @@ const Super40Results = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
               <div>
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full mb-6"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Authenticated Access</span>
-                </motion.div>
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Authenticated Access</span>
+                  </motion.div>
+
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.05 }}
+                    className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                      results.application?.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                      results.application?.status === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                      'bg-amber-50 text-amber-600 border-amber-200'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${
+                      results.application?.status === 'approved' ? 'bg-emerald-500 animate-pulse' :
+                      results.application?.status === 'rejected' ? 'bg-rose-500' :
+                      'bg-amber-500 animate-pulse'
+                    }`}></span>
+                    Application: {results.application?.status || 'pending'}
+                  </motion.div>
+                </div>
                 <motion.h1 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
