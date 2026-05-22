@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Lock, User, ShieldCheck, ArrowRight, Key, Sparkles } from 'lucide-react';
 import { authService } from '../api';
 
 const Login = () => {
@@ -9,6 +9,19 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Silent database seeding/initialization check on mount
+    const initDatabase = async () => {
+      try {
+        await authService.init('admin');
+      } catch (err) {
+        // Ignored if already initialized
+        console.log('Database initialization check complete');
+      }
+    };
+    initDatabase();
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,15 +39,20 @@ const Login = () => {
     }
   };
 
+  const handleAutofill = () => {
+    setUsername('admin');
+    setPassword('super40_admin_2026');
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px]"></div>
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-indigo-600/5 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="w-full max-w-[440px] relative z-10">
+      <div className="w-full max-w-[440px] relative z-10 space-y-6">
         <div className="bg-white border border-slate-200 p-10 md:p-12 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
           <div className="text-center mb-10">
             <div className="w-20 h-20 bg-blue-900 rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-900/10 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
@@ -99,36 +117,40 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Quick Autofill Helper */}
-          <div className="mt-8 p-5 bg-blue-50/50 border border-blue-100 rounded-2xl animate-in fade-in duration-500">
-            <div className="flex items-center gap-2 text-blue-900 mb-2">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Demo / Test Account</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-600 mb-3 space-y-1">
-              <div>Username: <code className="bg-white px-2 py-0.5 border border-blue-100 rounded text-blue-900 font-bold">admin</code></div>
-              <div>Password: <code className="bg-white px-2 py-0.5 border border-blue-100 rounded text-blue-900 font-bold">super40_admin_2026</code></div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setUsername('admin');
-                setPassword('super40_admin_2026');
-              }}
-              className="w-full py-2.5 bg-blue-900 text-white hover:bg-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm cursor-pointer"
-            >
-              Autofill Credentials
-            </button>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+          <div className="mt-10 pt-8 border-t border-slate-100 text-center">
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
               Private Administrative System
             </p>
           </div>
         </div>
+
+        {/* Premium Credentials Panel */}
+        <div className="bg-slate-900/5 border border-slate-200/60 p-6 rounded-[2rem] backdrop-blur-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Key className="w-4 h-4 text-blue-900" />
+              <span className="text-xs font-black uppercase text-slate-700 tracking-wider">Demo / Test Access</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleAutofill}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded-full text-[11px] font-black tracking-wider uppercase transition-all duration-300 shadow-md shadow-blue-900/10 active:scale-95 flex items-center justify-center"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Autofill Credentials</span>
+            </button>
+          </div>
+
+          <div className="bg-white/80 border border-slate-100 p-4 rounded-2xl font-semibold text-xs text-slate-800">
+            <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px] mb-1.5">Super Admin Account</p>
+            <div className="flex flex-col gap-1.5">
+              <p>Username: <span className="font-black text-blue-900">admin</span></p>
+              <p>Password: <span className="font-black text-blue-900">super40_admin_2026</span></p>
+            </div>
+          </div>
+        </div>
         
-        <p className="mt-8 text-center text-slate-400 text-sm font-medium">
+        <p className="text-center text-slate-400 text-sm font-medium">
           &copy; 2026 Krishna Engineering College. All rights reserved.
         </p>
       </div>

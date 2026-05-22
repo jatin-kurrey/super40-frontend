@@ -19,6 +19,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Login = lazy(() => import("./pages/Login"));
 const ApplicationManager = lazy(() => import("./pages/ApplicationManager"));
 const ExamManager = lazy(() => import("./pages/ExamManager"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: "applications", element: <ApplicationManager /> },
       { path: "exams", element: <ExamManager /> },
+      { path: "settings", element: <Settings /> },
     ]
   },
   {

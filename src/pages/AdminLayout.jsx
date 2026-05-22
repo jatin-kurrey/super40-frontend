@@ -31,6 +31,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Applications', path: '/admin/applications', icon: Users },
     { name: 'Super 40 Exams', path: '/admin/exams', icon: Trophy },
+    { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
   const isActive = (path) => {

@@ -56,6 +56,8 @@ export const uploadService = {
 export const authService = {
   login: (credentials) => api.post('auth/login', credentials),
   logout: () => localStorage.removeItem('super40_admin_token'),
+  changeSelfPassword: (currentPassword, newPassword) => api.put('admin/profile/password', { current_password: currentPassword, new_password: newPassword }),
+  init: (username) => api.post('auth/init', { username }),
 };
 
 export const examService = {
