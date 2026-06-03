@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { applicationService, examService, settingsService } from "../api";
 import { useNavigate } from "react-router-dom";
+import { Calendar, Clock, AlertCircle, KeyRound, Mail, Phone, User, GraduationCap } from "lucide-react";
 
 const Super40RegisterForm = ({ onSubmit }) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [settings, setSettings] = useState({});
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,10 +17,54 @@ const Super40RegisterForm = ({ onSubmit }) => {
     school: "",
     grade: "",
   });
+  
+  const [loginData, setLoginData] = useState({
+    email: "",
+    phone: ""
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await settingsService.get();
+        setSettings(res.data || {});
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLoginChange = (e) => {
+    const { name, value } = e.target;
+    setLoginData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    const emailNormalized = loginData.email.toLowerCase().trim();
+    const phoneNormalized = loginData.phone.trim();
+
+    localStorage.setItem('super40_student_email', emailNormalized);
+    localStorage.setItem('super40_student_phone', phoneNormalized);
+    
+    // Check results date to determine where to redirect
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const releaseDate = settings.results_date ? new Date(settings.results_date) : null;
+    
+    if (releaseDate && today >= releaseDate) {
+      navigate('/super40/results');
+    } else {
+      navigate('/super40/exams');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -55,9 +103,9 @@ const Super40RegisterForm = ({ onSubmit }) => {
           examService.getActive()
         ]);
         
-        const settings = settingsRes.data || {};
+        const settingsData = settingsRes.data || {};
         const activeExams = Array.isArray(examsRes.data) ? examsRes.data : (examsRes.data?.data || []);
-        const isDirectMode = settings.direct_exam_mode === 'true';
+        const isDirectMode = settingsData.direct_exam_mode === 'true';
         
         if (isDirectMode && activeExams.length > 0) {
           // Redirect directly to the single active exam
@@ -83,8 +131,37 @@ const Super40RegisterForm = ({ onSubmit }) => {
     }
   };
 
+  // Enforce Registration Windows
+  const getRegistrationState = () => {
+    if (loadingSettings) return { state: "loading" };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const startStr = settings.registration_start_date;
+    const endStr = settings.registration_last_date;
+
+    if (startStr) {
+      const start = new Date(startStr);
+      if (today < start) {
+        return { state: "upcoming", date: startStr };
+      }
+    }
+
+    if (endStr) {
+      const end = new Date(endStr);
+      if (today > end) {
+        return { state: "closed", date: endStr };
+      }
+    }
+
+    return { state: "open" };
+  };
+
+  const regStatus = getRegistrationState();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 py-12 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 py-12 px-4 relative overflow-hidden flex items-center justify-center">
       {/* Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[10%] left-[5%] w-20 h-20 bg-blue-200/30 rounded-full blur-xl"></div>
@@ -92,7 +169,7 @@ const Super40RegisterForm = ({ onSubmit }) => {
         <div className="absolute top-[40%] left-[20%] w-16 h-16 bg-blue-400/10 rounded-full blur-lg"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl border border-white/20 relative">
+      <div className="max-w-7xl w-full bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl border border-white/20 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[700px]">
           {/* Left Side - Content */}
           <div 
@@ -164,9 +241,123 @@ const Super40RegisterForm = ({ onSubmit }) => {
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-pulse"></div>
           </div>
 
-          {/* Right Side - Form */}
-          <div className="p-8 lg:p-12 relative flex items-center">
-            {submitted ? (
+          {/* Right Side - Form, Login, or Locked Status Card */}
+          <div className="p-8 lg:p-12 relative flex items-center justify-center w-full">
+            {regStatus.state === "loading" ? (
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="font-black text-[10px] text-slate-400 uppercase tracking-widest">Verifying Portal Status...</p>
+              </div>
+            ) : showLogin ? (
+              /* High-Security Student Login Portal */
+              <div className="w-full max-w-md space-y-8 animate-in fade-in">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <KeyRound className="w-9 h-9 text-blue-900" />
+                  </div>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase tracking-wide">Student Portal</h2>
+                  <p className="text-slate-500 font-medium">Access your secure exams list and performance results.</p>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="space-y-6">
+                  <div className="group">
+                    <label className="block text-slate-500 font-black text-[10px] uppercase tracking-widest mb-3">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Enter registered email"
+                        value={loginData.email}
+                        onChange={handleLoginChange}
+                        className="w-full p-4 pl-14 rounded-xl bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white text-slate-950 font-bold transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="group">
+                    <label className="block text-slate-500 font-black text-[10px] uppercase tracking-widest mb-3">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        placeholder="Enter registered phone"
+                        value={loginData.phone}
+                        onChange={handleLoginChange}
+                        className="w-full p-4 pl-14 rounded-xl bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white text-slate-950 font-bold transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-slate-900 hover:bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg transition-all transform hover:-translate-y-0.5"
+                  >
+                    Enter Student Suite
+                  </button>
+                </form>
+
+                {regStatus.state === "open" && (
+                  <div className="text-center pt-4">
+                    <button
+                      onClick={() => setShowLogin(false)}
+                      className="text-xs text-blue-900 font-black uppercase tracking-wider hover:underline"
+                    >
+                      New Candidate? Register Here
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : regStatus.state === "upcoming" ? (
+              <div className="w-full text-center space-y-8 animate-in fade-in max-w-md">
+                <div className="w-24 h-24 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                  <Calendar className="w-10 h-10 text-blue-900" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-3 uppercase tracking-wide">Registration Upcoming</h2>
+                  <p className="text-slate-500 font-medium leading-relaxed">
+                    The registration window for the Super 40 examination has not opened yet. It is scheduled to start on:
+                  </p>
+                  <p className="text-blue-900 font-black text-xl mt-4 bg-blue-50 px-6 py-3 rounded-2xl inline-block border border-blue-100">
+                    {new Date(regStatus.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-6">
+                  Krishna Engineering College • Bhilai
+                </div>
+              </div>
+            ) : regStatus.state === "closed" ? (
+              <div className="w-full text-center space-y-8 animate-in fade-in max-w-md">
+                <div className="w-24 h-24 bg-red-50 border border-red-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                  <AlertCircle className="w-10 h-10 text-red-600" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-3 uppercase tracking-wide">Registration Closed</h2>
+                  <p className="text-slate-500 font-medium leading-relaxed">
+                    The last date to register for the Super 40 examination has passed. The deadline was:
+                  </p>
+                  <p className="text-red-700 font-black text-xl mt-4 bg-red-50 px-6 py-3 rounded-2xl inline-block border border-red-100">
+                    {new Date(regStatus.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                
+                <div className="pt-6 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    className="w-full py-4 bg-slate-900 hover:bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg transition-all"
+                  >
+                    Already Registered? Student Login
+                  </button>
+                </div>
+
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest pt-2">
+                  Krishna Engineering College • Bhilai
+                </div>
+              </div>
+            ) : submitted ? (
               <div className="w-full text-center space-y-6 animate-in fade-in">
                 <div className="w-24 h-24 bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-blue-900/20">
                   <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,105 +380,115 @@ const Super40RegisterForm = ({ onSubmit }) => {
                 onSubmit={handleSubmit}
                 className="space-y-6 w-full"
               >
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-blue-900 mb-3">
-                  Register for Super 40 2026
-                </h2>
-                <p className="text-blue-600 text-lg">Secure your chance to be among the top 40 students</p>
-              </div>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-blue-900 mb-3">
+                    Register for Super 40 2026
+                  </h2>
+                  <p className="text-blue-600 text-lg">Secure your chance to be among the top 40 students</p>
+                </div>
 
-              {/* Name Field */}
-              <div className="group">
-                <label className="block text-blue-900 font-semibold mb-3 text-lg">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
-                  required
-                />
-              </div>
+                {/* Name Field */}
+                <div className="group">
+                  <label className="block text-blue-900 font-semibold mb-3 text-lg">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
+                    required
+                  />
+                </div>
 
-              {/* Email Field */}
-              <div className="group">
-                <label className="block text-blue-900 font-semibold mb-3 text-lg">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
-                  required
-                />
-              </div>
+                {/* Email Field */}
+                <div className="group">
+                  <label className="block text-blue-900 font-semibold mb-3 text-lg">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
+                    required
+                  />
+                </div>
 
-              {/* Phone Field */}
-              <div className="group">
-                <label className="block text-blue-900 font-semibold mb-3 text-lg">Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
-                  required
-                />
-              </div>
+                {/* Phone Field */}
+                <div className="group">
+                  <label className="block text-blue-900 font-semibold mb-3 text-lg">Phone Number</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="Enter your phone number"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
+                    required
+                  />
+                </div>
 
-              {/* School Field */}
-              <div className="group">
-                <label className="block text-blue-900 font-semibold mb-3 text-lg">School Name</label>
-                <input
-                  type="text"
-                  name="school"
-                  placeholder="Enter your school name"
-                  value={formData.school}
-                  onChange={handleChange}
-                  className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
-                  required
-                />
-              </div>
+                {/* School Field */}
+                <div className="group">
+                  <label className="block text-blue-900 font-semibold mb-3 text-lg">School Name</label>
+                  <input
+                    type="text"
+                    name="school"
+                    placeholder="Enter your school name"
+                    value={formData.school}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 placeholder-blue-400 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
+                    required
+                  />
+                </div>
 
-              {/* Grade Field */}
-              <div className="group">
-                <label className="block text-blue-900 font-semibold mb-3 text-lg">Grade / Standard</label>
-                <select
-                  name="grade"
-                  value={formData.grade}
-                  onChange={handleChange}
-                  className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
-                  required
+                {/* Grade Field */}
+                <div className="group">
+                  <label className="block text-blue-900 font-semibold mb-3 text-lg">Grade / Standard</label>
+                  <select
+                    name="grade"
+                    value={formData.grade}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl bg-blue-50/80 border-2 border-blue-200 text-blue-900 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm"
+                    required
+                  >
+                    <option value="" disabled>Select your grade</option>
+                    <option value="10th">10th Standard</option>
+                    <option value="11th">11th Standard</option>
+                    <option value="12th">12th Standard</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="" disabled>Select your grade</option>
-                  <option value="10th">10th Standard</option>
-                  <option value="11th">11th Standard</option>
-                  <option value="12th">12th Standard</option>
-                </select>
-              </div>
+                  <span className="flex items-center justify-center gap-2">
+                    {isSubmitting ? "Registering..." : "Register for Super 40 2026"}
+                    {!isSubmitting && (
+                      <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    )}
+                  </span>
+                </button>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105 group disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  {isSubmitting ? "Registering..." : "Register for Super 40 2026"}
-                  {!isSubmitting && (
-                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  )}
-                </span>
-              </button>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLogin(true)}
+                    className="text-xs text-blue-900 font-black uppercase tracking-wider hover:underline"
+                  >
+                    Already Registered? Student Login
+                  </button>
+                </div>
 
-              <p className="text-center text-blue-600 text-sm mt-6">
-                By registering, you agree to our terms and conditions. Limited seats available.
-              </p>
-            </form>
+                <p className="text-center text-blue-600 text-sm mt-4">
+                  By registering, you agree to our terms and conditions. Limited seats available.
+                </p>
+              </form>
             )}
           </div>
         </div>

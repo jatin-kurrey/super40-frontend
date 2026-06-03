@@ -7,7 +7,8 @@ import {
   Settings,
   Bell,
   Search,
-  Trophy
+  Trophy,
+  Layers
 } from 'lucide-react';
 import { authService } from '../api';
 
@@ -31,6 +32,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Applications', path: '/admin/applications', icon: Users },
     { name: 'Super 40 Exams', path: '/admin/exams', icon: Trophy },
+    { name: 'ISAB Programs', path: '/admin/programs', icon: Layers },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 

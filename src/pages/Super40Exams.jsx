@@ -31,6 +31,29 @@ const Super40Exams = () => {
     }
   });
 
+  const getExamSlotState = () => {
+    if (!settings.exam_date || !settings.exam_start_time || !settings.exam_end_time) {
+      return { state: "open" };
+    }
+
+    const now = new Date();
+    const [year, month, day] = settings.exam_date.split('-').map(Number);
+    const [startHour, startMin] = settings.exam_start_time.split(':').map(Number);
+    const [endHour, endMin] = settings.exam_end_time.split(':').map(Number);
+
+    const startDateTime = new Date(year, month - 1, day, startHour, startMin, 0);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMin, 0);
+
+    if (now < startDateTime) {
+      return { state: "upcoming", start: startDateTime };
+    } else if (now > endDateTime) {
+      return { state: "closed", end: endDateTime };
+    }
+    return { state: "open", end: endDateTime };
+  };
+
+  const slotStatus = getExamSlotState();
+
   React.useEffect(() => {
     const studentEmail = localStorage.getItem('super40_student_email');
     if (!studentEmail) {
@@ -38,10 +61,10 @@ const Super40Exams = () => {
       return;
     }
 
-    if (settings.direct_exam_mode === 'true' && exams.length > 0) {
+    if (settings.direct_exam_mode === 'true' && exams.length > 0 && slotStatus.state === 'open') {
       navigate(`/super40/exam/${exams[0].id}`);
     }
-  }, [settings, exams, navigate]);
+  }, [settings, exams, navigate, slotStatus.state]);
 
   if (loading) {
     return (
@@ -114,13 +137,26 @@ const Super40Exams = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={() => navigate(`/super40/exam/${exam.id}`)}
-                className="w-full bg-slate-900 group-hover:bg-blue-900 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-slate-900/20 group-hover:shadow-blue-900/20 transition-all duration-500 flex items-center justify-center gap-3"
-              >
-                Start Examination
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform duration-500" />
-              </button>
+              {slotStatus.state === "upcoming" ? (
+                <div className="w-full bg-blue-50 text-blue-900 border border-blue-100 py-4 px-6 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest text-center flex flex-col items-center gap-1 shadow-sm">
+                  <span>Examination Window Opens At</span>
+                  <span className="text-xs text-blue-700 font-bold">
+                    {new Date(slotStatus.start).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} • {settings.exam_start_time}
+                  </span>
+                </div>
+              ) : slotStatus.state === "closed" ? (
+                <div className="w-full bg-red-50 text-red-700 border border-red-100 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.15em] text-center shadow-sm">
+                  Examination Closed
+                </div>
+              ) : (
+                <button 
+                  onClick={() => navigate(`/super40/exam/${exam.id}`)}
+                  className="w-full bg-slate-900 group-hover:bg-blue-900 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-slate-900/20 group-hover:shadow-blue-900/20 transition-all duration-500 flex items-center justify-center gap-3"
+                >
+                  Start Examination
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform duration-500" />
+                </button>
+              )}
 
               <div className="mt-6 flex items-center justify-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />

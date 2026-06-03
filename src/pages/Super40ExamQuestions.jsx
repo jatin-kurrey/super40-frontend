@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { examService } from "../api";
+import { examService, settingsService } from "../api";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Eye, Loader2, FileText, TrendingUp } from "lucide-react";
+import { Clock, Eye, Loader2, FileText, TrendingUp, Calendar, AlertCircle } from "lucide-react";
 
 const Super40ExamQuestions = () => {
   const { id } = useParams();
@@ -14,6 +14,14 @@ const Super40ExamQuestions = () => {
   const [examStarted, setExamStarted] = useState(false);
   const [currentSubject, setCurrentSubject] = useState('');
   const [markedForReview, setMarkedForReview] = useState({});
+
+  const { data: settings = {}, isLoading: loadingSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const res = await settingsService.get();
+      return res.data || {};
+    }
+  });
 
   const { data: examData, isLoading: loading } = useQuery({
     queryKey: ['exam-details', id],
@@ -28,6 +36,30 @@ const Super40ExamQuestions = () => {
       navigate('/super40/exams');
     }
   });
+
+  const getExamSlotState = () => {
+    if (loadingSettings) return { state: "loading" };
+    if (!settings.exam_date || !settings.exam_start_time || !settings.exam_end_time) {
+      return { state: "open" };
+    }
+
+    const now = new Date();
+    const [year, month, day] = settings.exam_date.split('-').map(Number);
+    const [startHour, startMin] = settings.exam_start_time.split(':').map(Number);
+    const [endHour, endMin] = settings.exam_end_time.split(':').map(Number);
+
+    const startDateTime = new Date(year, month - 1, day, startHour, startMin, 0);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMin, 0);
+
+    if (now < startDateTime) {
+      return { state: "upcoming", start: startDateTime };
+    } else if (now > endDateTime) {
+      return { state: "closed", end: endDateTime };
+    }
+    return { state: "open", end: endDateTime };
+  };
+
+  const slotStatus = getExamSlotState();
 
   const questions = examData?.questions || [];
   const subjects = questions.length > 0 ? [...new Set(questions.map(q => q.subject || 'General'))] : [];
@@ -131,13 +163,58 @@ const Super40ExamQuestions = () => {
     return `${m}:${s}`;
   };
 
-  if (loading) return (
+  if (loading || loadingSettings) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-12 h-12 text-blue-900 animate-spin" />
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Initializing Secure Session...</p>
     </div>
   );
   
+  if (slotStatus.state === "upcoming") {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_40px_rgba(0,0,0,0.02)] text-center space-y-6 animate-in fade-in">
+          <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <Calendar className="w-8 h-8 text-blue-900" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-2 uppercase tracking-wide">Exam Window Not Open</h2>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              This entrance assessment is scheduled to take place on:
+            </p>
+            <p className="text-blue-900 font-black text-lg mt-4 bg-blue-50 px-6 py-3 rounded-xl inline-block border border-blue-100">
+              {new Date(slotStatus.start).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} • {settings.exam_start_time}
+            </p>
+          </div>
+          <button onClick={() => navigate('/super40/exams')} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold uppercase tracking-wider text-xs">
+            Return to Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (slotStatus.state === "closed") {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_40px_rgba(0,0,0,0.02)] text-center space-y-6 animate-in fade-in">
+          <div className="w-20 h-20 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-2 uppercase tracking-wide">Exam Window Concluded</h2>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              The scheduled time slot for this assessment has concluded.
+            </p>
+          </div>
+          <button onClick={() => navigate('/super40/exams')} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold uppercase tracking-wider text-xs">
+            Return to Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!exam) return <div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-slate-400">Protocol Error: Exam Not Found</div>;
 
   if (!examStarted) {

@@ -289,7 +289,86 @@ const ExamManager = () => {
       </div>
 
       {viewMode === 'list' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <>
+          {/* Assessment Cycle Settings */}
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-10 shadow-sm space-y-8 animate-in fade-in">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-1 uppercase tracking-wide">
+                Assessment Cycle Settings
+              </h2>
+              <p className="text-slate-500 font-semibold text-sm">
+                Enforce strict registration durations, exam time slots, and results declaration gates.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              {/* Registration Start */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Registration Start</label>
+                <input 
+                  type="date" 
+                  value={settings.registration_start_date || ""}
+                  onChange={e => updateSettingMutation.mutate({ key: 'registration_start_date', value: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-sm"
+                />
+              </div>
+
+              {/* Registration Last Date */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Registration Deadline</label>
+                <input 
+                  type="date" 
+                  value={settings.registration_last_date || ""}
+                  onChange={e => updateSettingMutation.mutate({ key: 'registration_last_date', value: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-sm"
+                />
+              </div>
+
+              {/* Exam Date */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Examination Date</label>
+                <input 
+                  type="date" 
+                  value={settings.exam_date || ""}
+                  onChange={e => updateSettingMutation.mutate({ key: 'exam_date', value: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-sm"
+                />
+              </div>
+
+              {/* Specific Exam Hours (Start & End) */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Exam Time Window</label>
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="time" 
+                    value={settings.exam_start_time || ""}
+                    onChange={e => updateSettingMutation.mutate({ key: 'exam_start_time', value: e.target.value })}
+                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-xs"
+                  />
+                  <span className="text-slate-400 font-bold text-xs">to</span>
+                  <input 
+                    type="time" 
+                    value={settings.exam_end_time || ""}
+                    onChange={e => updateSettingMutation.mutate({ key: 'exam_end_time', value: e.target.value })}
+                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Results Gate Date */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Results Release Date</label>
+                <input 
+                  type="date" 
+                  value={settings.results_date || ""}
+                  onChange={e => updateSettingMutation.mutate({ key: 'results_date', value: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-200 focus:bg-white transition-all font-semibold text-slate-800 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {exams.map(exam => (
             <div key={exam.id} className="group bg-white border border-slate-200 rounded-[2.5rem] p-10 hover:border-blue-200 transition-all duration-500 flex flex-col relative">
               {/* Status Indicator / Interactive Toggle Switch */}
@@ -391,6 +470,7 @@ const ExamManager = () => {
             </div>
           )}
         </div>
+        </>
       )}
 
       {(viewMode === 'create' || viewMode === 'edit') && (

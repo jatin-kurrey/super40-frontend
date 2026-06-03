@@ -19,7 +19,9 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Login = lazy(() => import("./pages/Login"));
 const ApplicationManager = lazy(() => import("./pages/ApplicationManager"));
 const ExamManager = lazy(() => import("./pages/ExamManager"));
-const Settings = lazy(() => import("./pages/Settings"));
+const Settings = lazy(() => import('./pages/Settings'));
+const ProgramEnrollForm = lazy(() => import('./pages/ProgramEnrollForm'));
+const ProgramManager = lazy(() => import('./pages/ProgramManager'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +41,7 @@ const router = createBrowserRouter([
       { path: "super40/exams", element: <Super40Exams /> },
       { path: "super40/exam/:id", element: <Super40ExamQuestions /> },
       { path: "super40/results", element: <Super40Results /> },
+      { path: "enroll/:programSlug", element: <ProgramEnrollForm /> },
       { 
         path: "*", 
         element: (
@@ -60,6 +63,7 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: "applications", element: <ApplicationManager /> },
       { path: "exams", element: <ExamManager /> },
+      { path: "programs", element: <ProgramManager /> },
       { path: "settings", element: <Settings /> },
     ]
   },

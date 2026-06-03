@@ -14,7 +14,7 @@ import {
   TrendingUp,
   User
 } from 'lucide-react';
-import { examService } from '../api';
+import { examService, settingsService } from '../api';
 
 const Super40Results = () => {
   const [credentials, setCredentials] = useState({
@@ -22,6 +22,22 @@ const Super40Results = () => {
     phone: ''
   });
   const [results, setResults] = useState(null);
+  const [settings, setSettings] = useState({});
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await settingsService.get();
+        setSettings(res.data || {});
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const { mutate: triggerLookup, isLoading: loading, error: mutationError } = useMutation({
     mutationFn: async ({ email, phone }) => {
@@ -45,15 +61,77 @@ const Super40Results = () => {
   useEffect(() => {
     const savedEmail = localStorage.getItem('super40_student_email');
     const savedPhone = localStorage.getItem('super40_student_phone');
-    if (savedEmail && savedPhone) {
+    if (savedEmail && savedPhone && !loadingSettings) {
       const emailVal = savedEmail.toLowerCase().trim();
       const phoneVal = savedPhone.trim();
       setCredentials({ email: emailVal, phone: phoneVal });
-      triggerLookup({ email: emailVal, phone: phoneVal });
+      
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const releaseDate = settings.results_date ? new Date(settings.results_date) : null;
+      
+      if (!releaseDate || today >= releaseDate) {
+        triggerLookup({ email: emailVal, phone: phoneVal });
+      }
     }
-  }, [triggerLookup]);
+  }, [triggerLookup, loadingSettings, settings.results_date]);
 
+  const getResultsState = () => {
+    if (loadingSettings) return { state: "loading" };
+    if (!settings.results_date) return { state: "open" };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const releaseDate = new Date(settings.results_date);
+
+    if (today < releaseDate) {
+      return { state: "upcoming", date: settings.results_date };
+    }
+    return { state: "open" };
+  };
+
+  const resultsStatus = getResultsState();
   const error = mutationError?.response?.data?.error || mutationError?.message;
+
+  if (loadingSettings) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-black text-[10px] text-slate-400 uppercase tracking-widest">Verifying Portal Access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (resultsStatus.state === "upcoming") {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] pt-32 pb-20 px-6 flex items-center justify-center">
+        <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-blue-900/5 to-transparent pointer-events-none"></div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_40px_rgba(0,0,0,0.02)] text-center space-y-6 relative z-10 animate-in fade-in"
+        >
+          <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+            <Calendar className="w-8 h-8 text-blue-900" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-2 uppercase tracking-wide">Results Awaiting Release</h2>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              The institutional evaluation results for the Super 40 examination will be officially declared on:
+            </p>
+            <p className="text-blue-900 font-black text-lg mt-4 bg-blue-50 px-6 py-3 rounded-xl inline-block border border-blue-100 animate-pulse">
+              {new Date(resultsStatus.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-6">
+            Krishna Engineering College • Bhilai
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pt-32 pb-20 px-6">
